@@ -8,10 +8,10 @@ It requires two SQL queries: one to find the user, and one to return the roles o
 
 #### Example:
 
-´´´
-  &lt;Realm className="org.tastefuljava.tomcat.MyDataSourceRealm"
+```xml
+  <Realm className="org.tastefuljava.tomcat.MyDataSourceRealm"
         dataSourceName="jdbc/lagalerie" debug="99" localDataSource="true"
         digest="md5" digestEncoding="UTF-8"
         authenticationQuery="SELECT USERNAME FROM users WHERE (USERNAME=:login OR EMAIL=:login) AND PASSWORD=:credentials"
-        rolesQuery="SELECT ROLE FROM roles WHERE USERNAME=:username"/&gt;
-´´´
+        rolesQuery="SELECT ROLE FROM roles WHERE USERNAME=:username"/>
+```
