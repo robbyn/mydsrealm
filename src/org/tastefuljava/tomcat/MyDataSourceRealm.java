@@ -139,7 +139,8 @@ public class MyDataSourceRealm extends RealmBase {
                 cnt.close();
             }
         } catch (SQLException e) {
-            containerLog.error(sm.getString("dataSourceRealm.close"), e); // Just log it here
+            // Just log it here
+            containerLog.error(sm.getString("dataSourceRealm.close"), e);
         }
     }
 
@@ -173,7 +174,12 @@ public class MyDataSourceRealm extends RealmBase {
         try {
             ResultSet rs = stmt.executeQuery();
             if (rs.next()) {
-                return rs.getString(1);
+                String result = rs.getString(1);
+                if (rs.next()) {
+                    // ambiguous login
+                    return null;
+                }
+                return result;
             }
             return null;
         } finally {
