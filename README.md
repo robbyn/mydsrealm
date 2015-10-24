@@ -19,3 +19,9 @@ It requires two SQL queries: one to find the user, and one to return the roles o
 The project also contains a valve that forces a basic authentication in the presence of an Authorization header. The
 Web App may be configured with FORM authentication, but the form authentication will by bypassed if the Authorization
 header contains valid credentials.
+
+To use it, just add the following line in your META-INF/context.xml:
+
+```xml
+    <Valve className="org.tastefuljava.tomcat.AutoBasicValve" />
+```
