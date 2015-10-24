@@ -25,3 +25,9 @@ To use it, just add the following line in your META-INF/context.xml:
 ```xml
     <Valve className="org.tastefuljava.tomcat.AutoBasicValve" />
 ```
+
+Note by default, the valve will use the UTF-8 encoding. To use another encoding, just add the "encoding" attribute:
+
+```xml
+    <Valve className="org.tastefuljava.tomcat.AutoBasicValve" encoding="ISO-8859-1" />
+```

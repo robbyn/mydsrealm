@@ -11,6 +11,16 @@ import org.apache.catalina.valves.ValveBase;
 public class AutoBasicValve extends ValveBase {
     private static final String BASIC_PREFIX = "basic ";
 
+    private String encoding = "UTF-8";
+
+    public String getEncoding() {
+        return encoding;
+    }
+
+    public void setEncoding(String encoding) {
+        this.encoding = encoding;
+    }
+
     @Override
     public void invoke(Request request, Response response)
             throws IOException, ServletException {
@@ -31,7 +41,7 @@ public class AutoBasicValve extends ValveBase {
                 if (auth.toLowerCase().startsWith(BASIC_PREFIX)) {
                     auth = auth.substring(BASIC_PREFIX.length());
                     byte[] bytes = Base64.decode(auth);
-                    auth = new String(bytes, "UTF-8");
+                    auth = new String(bytes, encoding);
                     int ix = auth.indexOf(':');
                     if (ix >= 0) {
                         String username = auth.substring(0, ix);
