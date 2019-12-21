@@ -11,8 +11,6 @@ import java.util.List;
 import java.util.Map;
 import javax.naming.Context;
 import javax.sql.DataSource;
-import org.apache.catalina.ServerFactory;
-import org.apache.catalina.core.StandardServer;
 import org.apache.catalina.realm.GenericPrincipal;
 import org.apache.catalina.realm.RealmBase;
 import org.apache.naming.ContextBindings;
@@ -79,13 +77,7 @@ public class MyDataSourceRealm extends RealmBase {
 
         Connection cnt = open();
         try {
-            String toValidate;
-            if (hasMessageDigest()) {
-                toValidate = digest(credentials);
-            } else {
-                toValidate = credentials;
-            }
-
+            String toValidate = getCredentialHandler().mutate(credentials);
             String username = getUsername(cnt, login, toValidate);
 
             if (username != null) {
@@ -102,7 +94,7 @@ public class MyDataSourceRealm extends RealmBase {
             List<String> roles = getUserRoles(cnt, username);
 
             // Create and return a suitable Principal for this user
-            return new GenericPrincipal(this, username, credentials, roles);
+            return new GenericPrincipal(username, credentials, roles);
         } catch (SQLException ex) {
             containerLog.error(
                     sm.getString("dataSourceRealm.getPassword.exception",
@@ -111,16 +103,6 @@ public class MyDataSourceRealm extends RealmBase {
         } finally {
             close(cnt);
         }
-    }
-
-    @Override
-    protected String getName() {
-        return NAME;
-    }
-
-    @Override
-    public String getInfo() {
-        return INFO;
     }
 
     @Override
@@ -151,9 +133,7 @@ public class MyDataSourceRealm extends RealmBase {
                 context = ContextBindings.getClassLoader();
                 context = (Context) context.lookup("comp/env");
             } else {
-                StandardServer server = 
-                    (StandardServer) ServerFactory.getServer();
-                context = server.getGlobalNamingContext();
+                context = getServer().getGlobalNamingContext();
             }
             DataSource dataSource = (DataSource)context.lookup(dataSourceName);
 	    return dataSource.getConnection();
