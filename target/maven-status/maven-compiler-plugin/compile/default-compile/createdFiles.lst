@@ -1,0 +1,4 @@
+org/tastefuljava/tomcat/MyDataSourceRealm.class
+org/tastefuljava/tomcat/AutoBasicValve.class
+org/tastefuljava/tomcat/Base64.class
+org/tastefuljava/tomcat/QueryParser.class
