@@ -10,6 +10,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import javax.naming.Context;
+import javax.naming.NamingException;
 import javax.sql.DataSource;
 import org.apache.catalina.realm.GenericPrincipal;
 import org.apache.catalina.realm.RealmBase;
@@ -75,15 +76,14 @@ public class MyDataSourceRealm extends RealmBase {
             return null;
         }
 
-        Connection cnt = open();
-        try {
+        try (Connection cnt = open()) {
             String toValidate = getCredentialHandler().mutate(credentials);
-            String username = getUsername(cnt, login, toValidate);
+            Object userId = getUserId(cnt, login, toValidate);
 
-            if (username != null) {
+            if (userId != null) {
                 if (containerLog.isTraceEnabled())
                     containerLog.trace(sm.getString(
-                            "jdbcRealm.authenticateSuccess", username));
+                            "jdbcRealm.authenticateSuccess", userId));
             } else {
                 if (containerLog.isTraceEnabled())
                     containerLog.trace(sm.getString(
@@ -91,17 +91,15 @@ public class MyDataSourceRealm extends RealmBase {
                 return null;
             }
 
-            List<String> roles = getUserRoles(cnt, username);
+            List<String> roles = getUserRoles(cnt, userId);
 
             // Create and return a suitable Principal for this user
-            return new GenericPrincipal(username, credentials, roles);
+            return new GenericPrincipal(userId.toString(), credentials, roles);
         } catch (SQLException ex) {
             containerLog.error(
                     sm.getString("dataSourceRealm.getPassword.exception",
                                  login));
             return null;
-        } finally {
-            close(cnt);
         }
     }
 
@@ -115,17 +113,6 @@ public class MyDataSourceRealm extends RealmBase {
         return null;
     }
 
-    protected void close(Connection cnt) {
-        try {
-            if (cnt != null) {
-                cnt.close();
-            }
-        } catch (SQLException e) {
-            // Just log it here
-            containerLog.error(sm.getString("dataSourceRealm.close"), e);
-        }
-    }
-
     protected Connection open() {
         try {
             Context context;
@@ -137,24 +124,23 @@ public class MyDataSourceRealm extends RealmBase {
             }
             DataSource dataSource = (DataSource)context.lookup(dataSourceName);
 	    return dataSource.getConnection();
-        } catch (Exception e) {
+        } catch (SQLException | NamingException e) {
             // Log the problem for posterity
             containerLog.error(sm.getString("dataSourceRealm.exception"), e);
         }  
         return null;
     }
 
-    protected String getUsername(Connection cnt, String login,
+    protected Object getUserId(Connection cnt, String login,
             String credentials) throws SQLException {
-        Map<String,String> parms = new HashMap<String,String>();
+        Map<String,Object> parms = new HashMap<>();
         parms.put("login", login);
         parms.put("credentials", credentials);
-        PreparedStatement stmt = prepareStatement(cnt, authenticationQuery,
-                authenticationNames, parms);
-        try {
+        try (PreparedStatement stmt = prepareStatement(cnt, authenticationQuery,
+                authenticationNames, parms)) {
             ResultSet rs = stmt.executeQuery();
             if (rs.next()) {
-                String result = rs.getString(1);
+                Object result = rs.getObject(1);
                 if (rs.next()) {
                     // ambiguous login
                     return null;
@@ -162,38 +148,33 @@ public class MyDataSourceRealm extends RealmBase {
                 return result;
             }
             return null;
-        } finally {
-            stmt.close();
         }
     }
 
-    protected List<String> getUserRoles(Connection cnt, String username)
+    protected List<String> getUserRoles(Connection cnt, Object userid)
             throws SQLException {
-        Map<String,String> parms = new HashMap<String,String>();
-        parms.put("username", username);
-        PreparedStatement stmt = prepareStatement(cnt, rolesQuery,
-                rolesNames, parms);
-        try {
+        Map<String,Object> parms = new HashMap<>();
+        parms.put("username", userid);
+        try (PreparedStatement stmt = prepareStatement(cnt, rolesQuery,
+                rolesNames, parms)) {
             ResultSet rs = stmt.executeQuery();
-            List<String> result = new ArrayList<String>();
+            List<String> result = new ArrayList<>();
             while (rs.next()) {
                 result.add(rs.getString(1));
             }
             return result;
-        } finally {
-            stmt.close();
         }
     }
 
     protected PreparedStatement prepareStatement(Connection cnt, String query,
-            String[] names, Map<String,String> parms) throws SQLException {
+            String[] names, Map<String,Object> parms) throws SQLException {
         boolean ok = false;
         PreparedStatement stmt = cnt.prepareStatement(query);
         try {
             int i = 0;
             for (String parmName: names) {
-                String value = parms.get(parmName);
-                stmt.setString(++i, value);
+                Object value = parms.get(parmName);
+                stmt.setObject(++i, value);
             }
             ok = true;
         } finally {
