@@ -5,7 +5,7 @@ import java.util.List;
 
 public class QueryParser {
     private final StringBuilder buf = new StringBuilder();
-    private final List<String> names = new ArrayList<String>();
+    private final List<String> names = new ArrayList<>();
 
     public String getQuery() {
         return buf.toString();
