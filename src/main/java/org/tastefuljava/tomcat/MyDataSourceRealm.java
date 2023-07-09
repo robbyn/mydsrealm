@@ -154,7 +154,7 @@ public class MyDataSourceRealm extends RealmBase {
     protected List<String> getUserRoles(Connection cnt, Object userid)
             throws SQLException {
         Map<String,Object> parms = new HashMap<>();
-        parms.put("username", userid);
+        parms.put("userId", userid);
         try (PreparedStatement stmt = prepareStatement(cnt, rolesQuery,
                 rolesNames, parms)) {
             ResultSet rs = stmt.executeQuery();
