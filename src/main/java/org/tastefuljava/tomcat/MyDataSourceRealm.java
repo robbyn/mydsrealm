@@ -77,6 +77,7 @@ public class MyDataSourceRealm extends RealmBase {
         }
 
         try (Connection cnt = open()) {
+            containerLog.info("Connected to data source");
             String toValidate = getCredentialHandler().mutate(credentials);
             Object userId = getUserId(cnt, login, toValidate);
 
