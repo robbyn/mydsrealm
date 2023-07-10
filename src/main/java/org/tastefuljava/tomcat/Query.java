@@ -35,12 +35,12 @@ public class Query {
                 stmt.setObject(++i, value);
             }
             ok = true;
+            return stmt;
         } finally {
             if (!ok) {
                 stmt.close();
             }
         }
-        return stmt;
     }
 
     private static class Parser {
@@ -76,12 +76,12 @@ public class Query {
                     }
                     break;
                 case 1:
-                    if (!Character.isLetter(c) && !Character.isDigit(c)
-                            && c != '_') {
+                    if (Character.isLetter(c) || Character.isDigit(c)
+                            || c == '_') {
+                        buf.append(c);
+                    } else {
                         endName();
                         return transition(0, c);
-                    } else {
-                        buf.append(c);
                     }
                     break;
                 case 2:
