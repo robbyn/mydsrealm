@@ -2,6 +2,7 @@ package org.tastefuljava.tomcat;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
@@ -10,6 +11,10 @@ import java.util.Map;
 public class Query {
     private final String sql;
     private final String[] names;
+
+    public interface ResultConsumer<T> {
+        T accept(ResultSet rs) throws SQLException;
+    }
 
     public static Query parse(String qry) {
         return new Parser().parse(qry);
@@ -24,22 +29,16 @@ public class Query {
         this.names = names;
     }
 
-    public PreparedStatement prepare(Connection cnt, Map<String,Object> parms)
+    public <T> T executeQuery(
+            Connection cnt, Map<String,?> parms, ResultConsumer<T> cons)
             throws SQLException {
-        boolean ok = false;
-        PreparedStatement stmt = cnt.prepareStatement(sql);
-        try {
+        try (PreparedStatement stmt = cnt.prepareStatement(sql)) {
             int i = 0;
             for (String name: names) {
                 Object value = parms.get(name);
                 stmt.setObject(++i, value);
             }
-            ok = true;
-            return stmt;
-        } finally {
-            if (!ok) {
-                stmt.close();
-            }
+            return cons.accept(stmt.executeQuery());
         }
     }
 

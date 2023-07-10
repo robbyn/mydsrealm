@@ -129,8 +129,7 @@ public class MyDataSourceRealm extends RealmBase {
         Map<String,Object> parms = new HashMap<>();
         parms.put("login", login);
         parms.put("credentials", credentials);
-        try (PreparedStatement stmt = authenticationQuery.prepare(cnt, parms)) {
-            ResultSet rs = stmt.executeQuery();
+        return authenticationQuery.executeQuery(cnt, parms, rs -> {
             if (rs.next()) {
                 Object result = rs.getObject(1);
                 if (rs.next()) {
@@ -140,20 +139,19 @@ public class MyDataSourceRealm extends RealmBase {
                 return result;
             }
             return null;
-        }
+        });
     }
 
     protected List<String> getUserRoles(Connection cnt, Object userid)
             throws SQLException {
         Map<String,Object> parms = new HashMap<>();
         parms.put("userId", userid);
-        try (PreparedStatement stmt = rolesQuery.prepare(cnt, parms)) {
-            ResultSet rs = stmt.executeQuery();
+        return rolesQuery.executeQuery(cnt, parms, rs -> {
             List<String> result = new ArrayList<>();
             while (rs.next()) {
                 result.add(rs.getString(1));
             }
             return result;
-        }
+        });
     }
 }
