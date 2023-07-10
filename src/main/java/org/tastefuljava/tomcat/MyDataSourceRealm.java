@@ -24,10 +24,8 @@ public class MyDataSourceRealm extends RealmBase {
     protected String dataSourceName = null;
     protected boolean localDataSource = false;
 
-    protected String authenticationQuery;
-    protected String[] authenticationNames;
-    protected String rolesQuery;
-    protected String[] rolesNames;
+    protected Query authenticationQuery;
+    protected Query rolesQuery;
 
     public String getDataSourceName() {
         return dataSourceName;
@@ -46,25 +44,19 @@ public class MyDataSourceRealm extends RealmBase {
     }
 
     public String getAuthenticationQuery() {
-        return authenticationQuery;
+        return Query.sql(authenticationQuery);
     }
 
-    public void setAuthenticationQuery(String authenticationQuery) {
-        QueryParser parser = new QueryParser();
-        parser.parse(authenticationQuery);
-        this.authenticationQuery = parser.getQuery();
-        authenticationNames = parser.getNames();
+    public void setAuthenticationQuery(String query) {
+        this.authenticationQuery = Query.parse(query);
     }
 
     public String getRolesQuery() {
-        return rolesQuery;
+        return Query.sql(rolesQuery);
     }
 
-    public void setRolesQuery(String rolesQuery) {
-        QueryParser parser = new QueryParser();
-        parser.parse(rolesQuery);
-        this.rolesQuery = parser.getQuery();
-        rolesNames = parser.getNames();
+    public void setRolesQuery(String query) {
+        this.rolesQuery = Query.parse(query);
     }
 
     @Override
@@ -137,8 +129,7 @@ public class MyDataSourceRealm extends RealmBase {
         Map<String,Object> parms = new HashMap<>();
         parms.put("login", login);
         parms.put("credentials", credentials);
-        try (PreparedStatement stmt = prepareStatement(cnt, authenticationQuery,
-                authenticationNames, parms)) {
+        try (PreparedStatement stmt = authenticationQuery.prepare(cnt, parms)) {
             ResultSet rs = stmt.executeQuery();
             if (rs.next()) {
                 Object result = rs.getObject(1);
@@ -156,8 +147,7 @@ public class MyDataSourceRealm extends RealmBase {
             throws SQLException {
         Map<String,Object> parms = new HashMap<>();
         parms.put("userId", userid);
-        try (PreparedStatement stmt = prepareStatement(cnt, rolesQuery,
-                rolesNames, parms)) {
+        try (PreparedStatement stmt = rolesQuery.prepare(cnt, parms)) {
             ResultSet rs = stmt.executeQuery();
             List<String> result = new ArrayList<>();
             while (rs.next()) {
@@ -165,24 +155,5 @@ public class MyDataSourceRealm extends RealmBase {
             }
             return result;
         }
-    }
-
-    protected PreparedStatement prepareStatement(Connection cnt, String query,
-            String[] names, Map<String,Object> parms) throws SQLException {
-        boolean ok = false;
-        PreparedStatement stmt = cnt.prepareStatement(query);
-        try {
-            int i = 0;
-            for (String parmName: names) {
-                Object value = parms.get(parmName);
-                stmt.setObject(++i, value);
-            }
-            ok = true;
-        } finally {
-            if (!ok) {
-                stmt.close();
-            }
-        }
-        return stmt;
     }
 }
