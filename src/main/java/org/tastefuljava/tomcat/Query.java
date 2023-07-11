@@ -10,7 +10,7 @@ import java.util.Map;
 
 public class Query {
     private final String sql;
-    private final String[] names;
+    private final List<String> names;
 
     public interface ResultConsumer<T> {
         T accept(ResultSet rs) throws SQLException;
@@ -24,9 +24,13 @@ public class Query {
         return qry == null ? null : qry.sql;
     }
 
-    private Query(String sql, String[] names) {
+    private Query(String sql, List<String> names) {
         this.sql = sql;
         this.names = names;
+    }
+
+    public boolean usesParam(String name) {
+        return names.contains(name);
     }
 
     public <T> T executeQuery(
@@ -56,7 +60,7 @@ public class Query {
             if (st == 1) {
                 endName();
             }
-            return new Query(buf.toString(), names.toArray(new String[0]));
+            return new Query(buf.toString(), names);
         }
 
         private int transition(int st, char c) {
