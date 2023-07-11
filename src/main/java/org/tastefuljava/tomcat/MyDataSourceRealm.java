@@ -2,8 +2,6 @@ package org.tastefuljava.tomcat;
 
 import java.security.Principal;
 import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -12,6 +10,7 @@ import java.util.Map;
 import javax.naming.Context;
 import javax.naming.NamingException;
 import javax.sql.DataSource;
+import org.apache.catalina.CredentialHandler;
 import org.apache.catalina.realm.GenericPrincipal;
 import org.apache.catalina.realm.RealmBase;
 import org.apache.naming.ContextBindings;
@@ -124,22 +123,42 @@ public class MyDataSourceRealm extends RealmBase {
         return null;
     }
 
-    protected Object getUserId(Connection cnt, String login,
-            String credentials) throws SQLException {
+    protected Object getUserId(
+            Connection cnt, String login, String credentials)
+            throws SQLException {
         Map<String,Object> parms = new HashMap<>();
         parms.put("login", login);
-        parms.put("credentials", credentials);
-        return authenticationQuery.executeQuery(cnt, parms, rs -> {
-            if (rs.next()) {
-                Object result = rs.getObject(1);
+        CredentialHandler credHandler = getCredentialHandler();
+        if (authenticationQuery.usesParam("credentials")) {
+            parms.put("credentials",
+                    credHandler.mutate(credentials));
+            return authenticationQuery.executeQuery(cnt, parms, rs -> {
                 if (rs.next()) {
-                    // ambiguous login
-                    return null;
+                    Object result = rs.getObject(1);
+                    if (rs.next()) {
+                        // ambiguous user
+                        return null;
+                    }
+                    return result;
+                }
+                return null;
+            });
+        } else {
+            return authenticationQuery.executeQuery(cnt, parms, rs -> {
+                Object result = null;
+                while (rs.next()) {
+                    if (credHandler.matches(credentials, rs.getString(2))) {
+                        if (result == null) {
+                            result = rs.getObject(1);
+                        } else {
+                            // ambiguous user
+                            return null;
+                        }
+                    }
                 }
                 return result;
-            }
-            return null;
-        });
+            });
+        }
     }
 
     protected List<String> getUserRoles(Connection cnt, Object userid)
